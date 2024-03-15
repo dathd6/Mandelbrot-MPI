@@ -24,6 +24,13 @@ int nIter[N_RE + 1][N_IM + 1];
 /* Points on real and imaginary axes*/
 float z_Re[N_RE + 1], z_Im[N_IM + 1];
 
+/* Task 1.1: Initial variables
+ *    - Create buffer space for sending and receiving data
+ *    - Missing data value (negative value)
+ * */
+float buffer[NM_IM + 3];
+const int MISSING_DATA_VALUE = -1;
+
 /* Domain size */
 const float z_Re_min = -2.0; /* Minimum real value*/
 const float z_Re_max = 1.0;  /* Maximum real value */
@@ -31,8 +38,8 @@ const float z_Im_min = -1.0; /* Minimum imaginary value */
 const float z_Im_max = 1.0;  /* Maximum imaginary value */
 
 /* Set to true to write out results*/
-const bool doIO = false;
-const bool verbose = false;
+const bool doIO = true; // [Courswework] Set to TRUE
+const bool verbose = true; // [Coursework] Set to TRUE
 
 /******************************************************************************************/
 
@@ -75,54 +82,57 @@ void calc_vals(int i) {
 to write results out to file. A new communicator will be set up which includes
 only the worker processes */
 
-void do_communication(int myRank) {
+/* Task 1.5: do_communication function is no longer required 
+ * */
 
-  MPI_Group worldGroup, workerGroup;
-  MPI_Comm workerComm;
-  int zeroArray = {0};
-
-  int sendBuffer[(N_RE + 1) * (N_IM + 1)];
-  int receiveBuffer[(N_RE + 1) * (N_IM + 1)];
-  int index = 0;
-  int i, j;
-
-  // Get a group handle for the world group
-  MPI_Comm_group(MPI_COMM_WORLD, &worldGroup);
-  // Form a new group excluding world group rank 0
-  MPI_Group_excl(worldGroup, 1, &zeroArray, &workerGroup);
-  // Create a communicator for the new group
-  MPI_Comm_create(MPI_COMM_WORLD, workerGroup, &workerComm);
-
-  /* Pack nIter into a 1D buffer for sending*/
-  for (i = 0; i < N_RE + 1; i++) {
-    for (j = 0; j < N_IM + 1; j++) {
-      sendBuffer[index] = nIter[i][j];
-      index++;
-    }
-  }
-
-  /* call MPI_reduce to collate all results on world group process 1
-      The world group rank zero process does not make this call */
-  if (myRank != 0) {
-    MPI_Reduce(&sendBuffer, &receiveBuffer, (N_RE + 1) * (N_IM + 1), MPI_INT,
-               MPI_SUM, 0, workerComm);
-  }
-
-  /* Unpack receive buffer into nIter */
-  index = 0;
-  for (i = 0; i < N_RE + 1; i++) {
-    for (j = 0; j < N_IM + 1; j++) {
-      nIter[i][j] = receiveBuffer[index];
-      index++;
-    }
-  }
-
-  /* Free the group and communicator */
-  if (myRank != 0) {
-    MPI_Comm_free(&workerComm);
-  }
-  MPI_Group_free(&workerGroup);
-}
+// void do_communication(int myRank) {
+// 
+//   MPI_Group worldGroup, workerGroup;
+//   MPI_Comm workerComm;
+//   int zeroArray = {0};
+// 
+//   int sendBuffer[(N_RE + 1) * (N_IM + 1)];
+//   int receiveBuffer[(N_RE + 1) * (N_IM + 1)];
+//   int index = 0;
+//   int i, j;
+// 
+//   // Get a group handle for the world group
+//   MPI_Comm_group(MPI_COMM_WORLD, &worldGroup);
+//   // Form a new group excluding world group rank 0
+//   MPI_Group_excl(worldGroup, 1, &zeroArray, &workerGroup);
+//   // Create a communicator for the new group
+//   MPI_Comm_create(MPI_COMM_WORLD, workerGroup, &workerComm);
+// 
+//   /* Pack nIter into a 1D buffer for sending*/
+//   for (i = 0; i < N_RE + 1; i++) {
+//     for (j = 0; j < N_IM + 1; j++) {
+//       sendBuffer[index] = nIter[i][j];
+//       index++;
+//     }
+//   }
+// 
+//   /* call MPI_reduce to collate all results on world group process 1
+//       The world group rank zero process does not make this call */
+//   if (myRank != 0) {
+//     MPI_Reduce(&sendBuffer, &receiveBuffer, (N_RE + 1) * (N_IM + 1), MPI_INT,
+//                MPI_SUM, 0, workerComm);
+//   }
+// 
+//   /* Unpack receive buffer into nIter */
+//   index = 0;
+//   for (i = 0; i < N_RE + 1; i++) {
+//     for (j = 0; j < N_IM + 1; j++) {
+//       nIter[i][j] = receiveBuffer[index];
+//       index++;
+//     }
+//   }
+// 
+//   /* Free the group and communicator */
+//   if (myRank != 0) {
+//     MPI_Comm_free(&workerComm);
+//   }
+//   MPI_Group_free(&workerGroup);
+// }
 
 /******************************************************************************************/
 
@@ -193,8 +203,16 @@ int main(int argc, char *argv[]) {
     // Hand out work to worker processes
     for (i = 0; i < N_RE + 1; i++) {
       // Receive request for work
-      MPI_Recv(&nextProc, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
+      /* Task 1.4 */
+      MPI_Recv(&buffer, N_IM + 3, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, // Receive the message 
                MPI_COMM_WORLD, &status);
+      nextProc = buffer[N_IM + 1]; // Next process
+      int c_values = buffer[N_IM + 2]; // Unpack the column of values
+      if (c_values != MISSING_DATA_VALUE) { // Task1.3: If there are no data -> manager process discard the data
+        for (j = 0; j < N_IM  + 1; j++) {
+          nIter[c_values][j] = buffer[j]; // stores it in the correct column of the nIter array
+        }
+      }
       // Send i value to requesting process
       MPI_Send(&i, 1, MPI_INT, nextProc, 100, MPI_COMM_WORLD);
     }
@@ -202,8 +220,16 @@ int main(int argc, char *argv[]) {
     // nProcs-1)
     for (i = 0; i < nProcs - 1; i++) {
       // Receive request for work
-      MPI_Recv(&nextProc, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
+      /* Task 1.4 */
+      MPI_Recv(&buffer, N_IM + 3, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, // Receive the message 
                MPI_COMM_WORLD, &status);
+      nextProc = buffer[N_IM + 1]; // Next process
+      int c_values = buffer[N_IM + 2]; // Unpack the column of values
+      if (c_values != MISSING_DATA_VALUE) { // Task1.3: If there are no data -> manager process discard the data
+        for (j = 0; j < N_IM + 1; j++) {
+          nIter[c_values][j] = buffer[j]; // stores it in the correct column of the nIter array
+        }
+      }
       // Send endFlag to finish
       MPI_Send(&endFlag, 1, MPI_INT, nextProc, 100, MPI_COMM_WORLD);
     }
@@ -212,10 +238,15 @@ int main(int argc, char *argv[]) {
   // Worker Processes
   else {
 
+    /* Task 1.2 */
+
+    buffer[NM_IM + 1] = myRank;
+    buffer[NM_IM + 2] = MISSING_DATA_VALUE; // Task 1.3: initial missing data value
+
     while (true) {
 
       // Send request for work
-      MPI_Send(&myRank, 1, MPI_INT, 0, 100 + myRank, MPI_COMM_WORLD);
+      MPI_Send(&buffer, N_IM + 3, MPI_INT, 0, 100 + myRank, MPI_COMM_WORLD);
       // Receive i value to work on
       MPI_Recv(&i, 1, MPI_INT, 0, 100, MPI_COMM_WORLD, &status);
 
@@ -223,16 +254,21 @@ int main(int argc, char *argv[]) {
         break;
       } else {
         calc_vals(i);
+	buffer[N_IM + 2] = i; // Set value column value to buffer
+        for (j = 0; j < N_IM + 1; j++) {
+          buffer[j] = nIter[i][j]; // Stores all value in row i to buffer
+        }
       }
 
     } // while(true)
   }   // else worker process
 
   /* Communicate results so rank 1 has all the values */
-  do_communication(myRank);
+  // Task 1.5: this is no longer required
+  // do_communication(myRank);
 
   /* Write out results */
-  if (doIO && myRank == 1) {
+  if (doIO && myRank == 0) { /* Task 1.6: Write out the results from the manager process */
     if (verbose) {
       printf("Writing out results from process %d \n", myRank);
     }
