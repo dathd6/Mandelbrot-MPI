@@ -20,8 +20,9 @@ module purge
 module load intel/2017b
 
 # Run the program
-for procs in 2 4 8 12 16; do
-    mpirun -np ${procs} ./mandelbrot
+# for procs in 2 4 8 12 16; do
+for procs in 12; do
+    mpirun -np ${procs} ./mandelbrot_mpi_mw
 done
 
 # End of file

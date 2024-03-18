@@ -1,0 +1,27 @@
+# This gnuplot script plots the results from the first coursework assignment. 
+# It is assumed that the data to be plotted are in a file called
+# mandelbrot.dat which contains 3 columns: x,y,u
+# The plot is sent to a PNG file called mandelbrot.png 
+# To use this file copy it to the directory/folder containing 
+# final.dat and run the command: 
+# gnuplot plot_mandelbrot 
+
+# Send output to a PNG file
+set terminal png  enhanced 
+# Set the name of the output file
+set output "mandelbrot.png"
+
+# Set ranges and labels for axes
+set xrange [-2.0:1.0]
+set yrange [-1.0:1.0]
+
+# Enforce an aspect ratio of 1
+set size square
+
+# Set the range of the colour scale
+set cbrange [0:100]
+
+# Plot the data 
+plot "mandelbrot.dat" with image 
+
+# End of file
