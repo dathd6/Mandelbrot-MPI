@@ -38,8 +38,8 @@ const float z_Im_min = -1.0; /* Minimum imaginary value */
 const float z_Im_max = 1.0;  /* Maximum imaginary value */
 
 /* Set to true to write out results*/
-const bool doIO = true; // [Courswework] Set to TRUE
-const bool verbose = true; // [Coursework] Set to TRUE
+const bool doIO = false; // [Courswework] Set to TRUE
+const bool verbose = false; // [Coursework] Set to TRUE
 
 /******************************************************************************************/
 
@@ -58,6 +58,7 @@ void calc_vals(int i) {
   float complex z0;
 
   int j, k;
+  buffer[N_IM + 2] = i; // Set value column value to buffer
 
   /* Loop over imaginary axis */
   for (j = 0; j < N_IM + 1; j++) {
@@ -67,7 +68,7 @@ void calc_vals(int i) {
     /* Iterate up to a maximum number or bail out if mod(z) > 2 */
     k = 0;
     while (k < maxIter) {
-      nIter[i][j] = k;
+      buffer[j] = k; // Store all value of current column i in buffer
       if (cabs(z) > 2.0)
         break;
       z = z * z + z0;
@@ -254,10 +255,6 @@ int main(int argc, char *argv[]) {
         break;
       } else {
         calc_vals(i);
-	buffer[N_IM + 2] = i; // Set value column value to buffer
-        for (j = 0; j < N_IM + 1; j++) {
-          buffer[j] = nIter[i][j]; // Stores all value in row i to buffer
-        }
       }
 
     } // while(true)
