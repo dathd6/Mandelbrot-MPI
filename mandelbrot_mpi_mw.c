@@ -218,9 +218,17 @@ int main(int argc, char *argv[]) {
     // Tell all the worker processes to finish (once for each worker process = nProcs-1)
     for (i = 0; i < nProcs - 1; i++) {
       // Receive request for work
-      /* Task 1.4: Get the process rank from buffer and tell the worker to finish its process */
+      /* Task 1.4: Get the process rank from buffer and tell the worker to finish its process 
+       *           Receiving the last buffer from the array to store in the correct column of the nIter
+       * */
       MPI_Recv(&buffer, N_IM + 3, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status); // Receive the message
-      nextProc = buffer[N_IM + 1];       // Next process
+      nextProc = buffer[N_IM + 1];          // Next process
+      int c_values = buffer[N_IM + 2];      // Unpack the column of values
+      if (c_values != MISSING_DATA_VALUE) { // Task 1.3: If there are no data -> manager process discard the data
+        for (j = 0; j < N_IM + 1; j++) {
+          nIter[c_values][j] = buffer[j]; // stores it in the correct column of the nIter array
+        }
+      }
       // Send endFlag to finish
       MPI_Send(&endFlag, 1, MPI_INT, nextProc, 100, MPI_COMM_WORLD);
     }
