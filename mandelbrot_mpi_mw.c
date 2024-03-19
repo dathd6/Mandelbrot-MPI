@@ -58,13 +58,12 @@ void calc_vals(int i) {
   float complex z0;
 
   int j, k;
-  buffer[N_IM + 2] = i; // Set value column value to buffer
 
+  buffer[N_IM + 2] = i; // Set value column value to buffer
   /* Loop over imaginary axis */
   for (j = 0; j < N_IM + 1; j++) {
     z0 = z_Re[i] + z_Im[j] * I;
     z = z0;
-
     /* Iterate up to a maximum number or bail out if mod(z) > 2 */
     k = 0;
     while (k < maxIter) {
@@ -204,29 +203,23 @@ int main(int argc, char *argv[]) {
     // Hand out work to worker processes
     for (i = 0; i < N_RE + 1; i++) {
       // Receive request for work
-      /* Task 1.4 */
-      MPI_Recv(&buffer, N_IM + 3, MPI_INT, MPI_ANY_SOURCE,
-               MPI_ANY_TAG, // Receive the message
-               MPI_COMM_WORLD, &status);
+      /* Task 1.4: Receiving the buffer array to store in the correct column of the nIter */
+      MPI_Recv(&buffer, N_IM + 3, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status); // Receive the message
       nextProc = buffer[N_IM + 1];          // Next process
       int c_values = buffer[N_IM + 2];      // Unpack the column of values
-      if (c_values != MISSING_DATA_VALUE) { // Task1.3: If there are no data ->
-                                            // manager process discard the data
+      if (c_values != MISSING_DATA_VALUE) { // Task 1.3: If there are no data -> manager process discard the data
         for (j = 0; j < N_IM + 1; j++) {
-          nIter[c_values][j] =
-              buffer[j]; // stores it in the correct column of the nIter array
+          nIter[c_values][j] = buffer[j]; // stores it in the correct column of the nIter array
         }
       }
       // Send i value to requesting process
       MPI_Send(&i, 1, MPI_INT, nextProc, 100, MPI_COMM_WORLD);
     }
-    // Tell all the worker processes to finish (once for each worker process =
-    // nProcs-1)
+    // Tell all the worker processes to finish (once for each worker process = nProcs-1)
     for (i = 0; i < nProcs - 1; i++) {
       // Receive request for work
-      /* Task 1.4 */
-      MPI_Recv(&buffer, N_IM + 3, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
-               MPI_COMM_WORLD, &status); // Receive the message
+      /* Task 1.4: Get the process rank from buffer and tell the worker to finish its process */
+      MPI_Recv(&buffer, N_IM + 3, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status); // Receive the message
       nextProc = buffer[N_IM + 1];       // Next process
       // Send endFlag to finish
       MPI_Send(&endFlag, 1, MPI_INT, nextProc, 100, MPI_COMM_WORLD);
@@ -235,26 +228,19 @@ int main(int argc, char *argv[]) {
 
   // Worker Processes
   else {
-
-    /* Task 1.2 */
-
+    /* Task 1.2: Calculate */
     buffer[N_IM + 1] = myRank; // Store current process to buffer
-    buffer[N_IM + 2] =
-        MISSING_DATA_VALUE; // Task 1.3: initial missing data value
-
+    buffer[N_IM + 2] = MISSING_DATA_VALUE; // Task 1.3: initial missing data value
     while (true) {
-
       // Send request for work
       MPI_Send(&buffer, N_IM + 3, MPI_INT, 0, 100 + myRank, MPI_COMM_WORLD);
       // Receive i value to work on
       MPI_Recv(&i, 1, MPI_INT, 0, 100, MPI_COMM_WORLD, &status);
-
       if (i == endFlag) {
         break;
       } else {
         calc_vals(i);
       }
-
     } // while(true)
   }   // else worker process
 
@@ -263,9 +249,7 @@ int main(int argc, char *argv[]) {
   // do_communication(myRank);
 
   /* Write out results */
-  if (doIO &&
-      myRank ==
-          0) { /* Task 1.6: Write out the results from the manager process */
+  if (doIO && myRank == 0) { /* Task 1.6: Write out the results from the manager process */
     if (verbose) {
       printf("Writing out results from process %d \n", myRank);
     }
